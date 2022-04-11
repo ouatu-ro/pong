@@ -11,7 +11,7 @@ let dy = 8;
 let speed = Math.sqrt(2) * dy;
 let x = 150;
 let y = 250;
-let ballRadius = 25;
+let ballRadius = 15;
 let paddleHeight = 20;
 let paddleWidth = 150;
 let paddleX = (canvas.width-paddleWidth) / 2;
@@ -52,6 +52,8 @@ function drawBricks() {
 }
 
 function collisionDetection() {
+    let vertical_refleciton = false;
+    let horizontal_reflection = false;
     for(var c=0; c<brickColumnCount; c++) {
         for(var r=0; r<brickRowCount; r++) {
             var b = bricks[c][r];
@@ -61,16 +63,22 @@ function collisionDetection() {
                 if(intersects(circle, b)) { // || x > b.x && x < b.x+brickWidth && y > b.y && y < b.y+brickHeight) {
                     
                     if(b.x > circle.x|| b.x + b.width < circle.x) {
-                        dx = -dx;
+                        vertical_refleciton = true;
+                        
                         // console.log(b.x > circle.x + circle.r);
                         // console.log(b.x + b.width < circle.x);
                     }
-                    else dy = -dy;
+                    // if(b.y > circle.y || b.y + b.height <= circle.y + circle.r)
+                    else {
+                        horizontal_reflection = true;
+                    } 
                     b.status = 0;
                 }
             }
         }
     }
+    if (vertical_refleciton) dx = -dx;
+    if (horizontal_reflection) dy = - dy;
 }
 
 function intersects(circle, b)
