@@ -177,8 +177,6 @@ function movePaddle(e) {
 }
 
 function gameActions(e) {
-    console.log(e.clientX);
-    console.log(e.clientY);
     if (
         restartX - restartRadius < e.clientX && 
         e.clientX < restartX + restartRadius &&
@@ -193,7 +191,13 @@ function gameActions(e) {
 
 canvas.addEventListener("mousemove", movePaddle);
 canvas.addEventListener("mousedown", gameActions);
-
+// canvas.addEventListener("touchmove", movePaddle);
+canvas.addEventListener("touchmove", function (e) {
+    var touch = e.touches[0];
+    e.preventDefault();
+    movePaddle(touch);
+})
+  
 
 window.addEventListener('resize', () => {
     // Resizing
