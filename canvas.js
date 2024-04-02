@@ -115,6 +115,17 @@ function intersects(circle, b) {
   return cornerDistance_sq <= (circle.r ^ 2);
 }
 
+let transition = 1;
+
+function transitionBricks() {
+  for (var c = 0; c < brickColumnCount; c++) {
+    for (var r = 0; r < brickRowCount; r++) {
+      bricks[c][r].y += transition;
+    }
+  }
+  console.log(bricks[0][0].y);
+}
+
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawPaddle();
