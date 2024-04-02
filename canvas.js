@@ -26,11 +26,12 @@ var brickHeight = 30;
 var brickPadding = 5;
 var brickOffsetTop = 30;
 var brickOffsetLeft = 30;
-var bricks = [];
-for (var c = 0; c < brickColumnCount; c++) {
-  bricks[c] = [];
-  for (var r = 0; r < brickRowCount; r++) {
-    bricks[c][r] = {
+let bricks = {};
+
+for (let c = 0; c < brickColumnCount; c++) {
+  for (let r = 0; r < brickRowCount; r++) {
+    const key = `c${c}_r${r}`;
+    bricks[key] = {
       x: c * (brickWidth + brickPadding) + brickOffsetLeft,
       y: r * (brickHeight + brickPadding) + brickOffsetTop,
       status: 1,
@@ -39,12 +40,18 @@ for (var c = 0; c < brickColumnCount; c++) {
     };
   }
 }
+
 function drawBricks() {
   for (var c = 0; c < brickColumnCount; c++) {
     for (var r = 0; r < brickRowCount; r++) {
-      if (bricks[c][r].status == 1) {
+      if (bricks[`c${c}_r${r}`].status == 1) {
         ctx.beginPath();
-        ctx.rect(bricks[c][r].x, bricks[c][r].y, brickWidth, brickHeight);
+        ctx.rect(
+          bricks[`c${c}_r${r}`].x,
+          bricks[`c${c}_r${r}`].y,
+          brickWidth,
+          brickHeight
+        );
         ctx.fillStyle = "#0095DD";
         ctx.fill();
         ctx.closePath();
@@ -58,7 +65,7 @@ function collisionDetection() {
   let horizontal_reflection = false;
   for (var c = 0; c < brickColumnCount; c++) {
     for (var r = 0; r < brickRowCount; r++) {
-      var b = bricks[c][r];
+      var b = bricks[`c${c}_r${r}`];
       if (b.status == 1) {
         let circle = { x: x, y: y, r: ballRadius };
 
@@ -120,7 +127,7 @@ let transition = 1;
 function transitionBricks() {
   for (var c = 0; c < brickColumnCount; c++) {
     for (var r = 0; r < brickRowCount; r++) {
-      bricks[c][r].y += transition;
+      bricks[`c${c}_r${r}`].y += transition;
     }
   }
   console.log(bricks[0][0].y);
