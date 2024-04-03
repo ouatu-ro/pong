@@ -25,10 +25,22 @@ var brickWidth = 150;
 var brickHeight = 30;
 var brickPadding = 5;
 var brickOffsetTop = 5;
-var brickOffsetLeft = 5;
+var brickOffsetLeft = 40;
 
+let firstBrickColumn = 0;
+let lastBrickColumn = brickColumnCount - 1;
+let firstBrickRow = 0;
+let lastBrickRow = brickRowCount - 1;
+let numberOfBricksDestroyed = 0;
 let bricks = {};
 for (let c = 0; c < brickColumnCount; c++) {
+  if (
+    c * (brickWidth + brickPadding) + brickOffsetLeft + 0.85 * brickWidth >
+    canvas.width
+  ) {
+    lastBrickColumn = c - 1;
+    break;
+  } // stop if more than 15% of the brick is out of the canvas
   for (let r = 0; r < brickRowCount; r++) {
     const key = `c${c}_r${r}`;
     bricks[key] = {
@@ -40,19 +52,14 @@ for (let c = 0; c < brickColumnCount; c++) {
     };
   }
 }
-let firstBrickColumn = 0;
-let lastBrickColumn = brickColumnCount - 1;
-let firstBrickRow = 0;
-let lastBrickRow = brickRowCount - 1;
+
 function mapOnBricks(fn) {
-  let newBricks = {};
   for (let c = firstBrickColumn; c <= lastBrickColumn; c++) {
     for (let r = firstBrickRow; r <= lastBrickRow; r++) {
       const key = `c${c}_r${r}`;
-      newBricks[key] = fn(bricks[key]) || bricks[key];
+      bricks[key] = fn(bricks[key]) || bricks[key];
     }
   }
-  return newBricks;
 }
 
 function drawBricks() {
@@ -81,6 +88,7 @@ function collisionDetection() {
           horizontal_reflection = true;
         }
         brick.status = 0;
+        numberOfBricksDestroyed++;
       }
     }
   });
@@ -88,10 +96,12 @@ function collisionDetection() {
   if (horizontal_reflection) dy = -dy;
 }
 
+let num_transitions = 0;
+let queue = [];
 function intersects(circle, b) {
   let circleDistance = {};
   let abs = Math.abs;
-  rect = Object.assign({}, b);
+  let rect = Object.assign({}, b);
   rect.x += rect.width / 2;
   rect.y += rect.height / 2;
   circleDistance.x = abs(circle.x - rect.x);
@@ -119,22 +129,9 @@ function intersects(circle, b) {
   return cornerDistance_sq <= (circle.r ^ 2);
 }
 
-let transition = 1;
-
-function transitionBricks() {
-  mapOnBricks((brick) => {
-    brick.x += transition;
-  });
-}
-
-let num_transitions = brickWidth + brickPadding;
-
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  if (num_transitions > 0) {
-    num_transitions -= 1;
-    transitionBricks();
-  }
+  transitionBricksAndCheckColumns();
   drawPaddle();
   collisionDetection();
   drawBall();
@@ -189,6 +186,10 @@ function drawMenu() {
   ctx.fillStyle = "#0095DD";
   ctx.fill();
   ctx.closePath();
+  // display number of bricks destroyed
+  ctx.font = "16px Arial";
+  ctx.fillStyle = "#0095DD";
+  ctx.fillText("Destroyed: " + numberOfBricksDestroyed, 20, 200);
 }
 
 function movePaddle(e) {
@@ -214,7 +215,6 @@ function gameActions(e) {
 
 canvas.addEventListener("mousemove", movePaddle);
 canvas.addEventListener("mousedown", gameActions);
-// canvas.addEventListener("touchmove", movePaddle);
 canvas.addEventListener("touchmove", function (e) {
   var touch = e.touches[0];
   e.preventDefault();
@@ -226,3 +226,93 @@ window.addEventListener("resize", () => {
   canvas.height = window.innerHeight;
   canvas.width = window.innerWidth;
 });
+
+// Brick functions
+function addBrickRowOrColumn({ type = "column", atStart = false }) {
+  if (type === "column") {
+    const columnReference = atStart ? firstBrickColumn : lastBrickColumn;
+    const columnToAdd = atStart ? --firstBrickColumn : ++lastBrickColumn;
+    for (let r = firstBrickRow; r <= lastBrickRow; r++) {
+      const key = `c${columnToAdd}_r${r}`;
+      const referenceKey = `c${columnReference}_r${r}`;
+      const referenceBrick = bricks[referenceKey];
+      bricks[key] = {
+        x: atStart
+          ? referenceBrick.x - (brickWidth + brickPadding)
+          : referenceBrick.x + referenceBrick.width + brickPadding,
+        y: referenceBrick.y,
+        status: 1,
+        width: brickWidth,
+        height: brickHeight,
+      };
+    }
+  } else if (type === "row") {
+    const rowReference = atStart ? firstBrickRow : lastBrickRow;
+    const rowToAdd = atStart ? --firstBrickRow : ++lastBrickRow;
+    for (let c = firstBrickColumn; c <= lastBrickColumn; c++) {
+      const key = `c${c}_r${rowToAdd}`;
+      const referenceKey = `c${c}_r${rowReference}`;
+      const referenceBrick = bricks[referenceKey];
+      bricks[key] = {
+        x: referenceBrick.x,
+        y: atStart
+          ? referenceBrick.y - (brickHeight + brickPadding)
+          : referenceBrick.y + referenceBrick.height + brickPadding,
+        status: 1,
+        width: brickWidth,
+        height: brickHeight,
+      };
+    }
+  } else {
+    throw new Error("Invalid type. Must be 'row' or 'column'.");
+  }
+}
+
+function transitionBricks(xTransition, yTransition) {
+  mapOnBricks((brick) => {
+    if (brick) {
+      // Ensure the brick exists before attempting to modify it
+      brick.x += xTransition;
+      brick.y += yTransition;
+    }
+  });
+}
+
+function isColumnEmpty(brickColumn) {
+  let key;
+  try {
+    for (let r = firstBrickRow; r <= lastBrickRow; r++) {
+      key = `c${brickColumn}_r${r}`;
+      if (bricks[key].status === 1) return false;
+    }
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function transitionBricksAndCheckColumns() {
+  if (num_transitions > 0) {
+    num_transitions -= 1;
+    transitionBricks(1, 0);
+  } else if (num_transitions < 0) {
+    num_transitions += 1;
+    transitionBricks(-1, 0);
+  }
+
+  let firstBrickColumnAux = firstBrickColumn;
+  while (isColumnEmpty(firstBrickColumnAux)) {
+    firstBrickColumn += 1;
+    addBrickRowOrColumn({ type: "column", atStart: false });
+    num_transitions -= brickWidth + brickPadding;
+    firstBrickColumnAux += 1;
+  }
+
+  let lastBrickColumnAux = lastBrickColumn;
+  while (isColumnEmpty(lastBrickColumnAux)) {
+    addBrickRowOrColumn({ type: "column", atStart: true });
+    lastBrickColumn -= 1;
+    num_transitions += brickWidth + brickPadding;
+    lastBrickColumnAux -= 1;
+  }
+}
