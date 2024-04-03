@@ -33,6 +33,9 @@ let firstBrickRow = 0;
 let lastBrickRow = brickRowCount - 1;
 let numberOfBricksDestroyed = 0;
 let bricks = {};
+let brickPerMinute = 0;
+let startTimestamp = Date.now();
+
 for (let c = 0; c < brickColumnCount; c++) {
   if (
     c * (brickWidth + brickPadding) + brickOffsetLeft + 0.85 * brickWidth >
@@ -190,6 +193,12 @@ function drawMenu() {
   ctx.font = "16px Arial";
   ctx.fillStyle = "#0095DD";
   ctx.fillText("Destroyed: " + numberOfBricksDestroyed, 20, 200);
+  // display bricks per minute
+  ctx.font = "16px Arial";
+  ctx.fillStyle = "#0095DD";
+  let elapsedMinutes = (Date.now() - startTimestamp) / 60000;
+  brickPerMinute = numberOfBricksDestroyed / elapsedMinutes;
+  ctx.fillText("Bricks/min: " + brickPerMinute.toFixed(0), 20, 220);
 }
 
 function movePaddle(e) {
