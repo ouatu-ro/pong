@@ -24,10 +24,10 @@ var brickColumnCount = 40;
 var brickWidth = 150;
 var brickHeight = 30;
 var brickPadding = 5;
-var brickOffsetTop = 30;
-var brickOffsetLeft = 30;
-let bricks = {};
+var brickOffsetTop = 5;
+var brickOffsetLeft = 5;
 
+let bricks = {};
 for (let c = 0; c < brickColumnCount; c++) {
   for (let r = 0; r < brickRowCount; r++) {
     const key = `c${c}_r${r}`;
@@ -40,53 +40,50 @@ for (let c = 0; c < brickColumnCount; c++) {
     };
   }
 }
-
-function drawBricks() {
-  for (var c = 0; c < brickColumnCount; c++) {
-    for (var r = 0; r < brickRowCount; r++) {
-      if (bricks[`c${c}_r${r}`].status == 1) {
-        ctx.beginPath();
-        ctx.rect(
-          bricks[`c${c}_r${r}`].x,
-          bricks[`c${c}_r${r}`].y,
-          brickWidth,
-          brickHeight
-        );
-        ctx.fillStyle = "#0095DD";
-        ctx.fill();
-        ctx.closePath();
-      }
+let firstBrickColumn = 0;
+let lastBrickColumn = brickColumnCount - 1;
+let firstBrickRow = 0;
+let lastBrickRow = brickRowCount - 1;
+function mapOnBricks(fn) {
+  let newBricks = {};
+  for (let c = firstBrickColumn; c <= lastBrickColumn; c++) {
+    for (let r = firstBrickRow; r <= lastBrickRow; r++) {
+      const key = `c${c}_r${r}`;
+      newBricks[key] = fn(bricks[key]) || bricks[key];
     }
   }
+  return newBricks;
+}
+
+function drawBricks() {
+  mapOnBricks((brick) => {
+    if (brick.status == 1) {
+      ctx.beginPath();
+      ctx.rect(brick.x, brick.y, brickWidth, brickHeight);
+      ctx.fillStyle = "#0095DD";
+      ctx.fill();
+      ctx.closePath();
+    }
+  });
 }
 
 function collisionDetection() {
   let vertical_refleciton = false;
   let horizontal_reflection = false;
-  for (var c = 0; c < brickColumnCount; c++) {
-    for (var r = 0; r < brickRowCount; r++) {
-      var b = bricks[`c${c}_r${r}`];
-      if (b.status == 1) {
-        let circle = { x: x, y: y, r: ballRadius };
+  mapOnBricks((brick) => {
+    if (brick.status == 1) {
+      let circle = { x: x, y: y, r: ballRadius };
 
-        if (intersects(circle, b)) {
-          // || x > b.x && x < b.x+brickWidth && y > b.y && y < b.y+brickHeight) {
-
-          if (b.x > circle.x || b.x + b.width < circle.x) {
-            vertical_refleciton = true;
-
-            // console.log(b.x > circle.x + circle.r);
-            // console.log(b.x + b.width < circle.x);
-          }
-          // if(b.y > circle.y || b.y + b.height <= circle.y + circle.r)
-          else {
-            horizontal_reflection = true;
-          }
-          b.status = 0;
+      if (intersects(circle, brick)) {
+        if (brick.x > circle.x || brick.x + brick.width < circle.x) {
+          vertical_refleciton = true;
+        } else {
+          horizontal_reflection = true;
         }
+        brick.status = 0;
       }
     }
-  }
+  });
   if (vertical_refleciton) dx = -dx;
   if (horizontal_reflection) dy = -dy;
 }
@@ -125,16 +122,19 @@ function intersects(circle, b) {
 let transition = 1;
 
 function transitionBricks() {
-  for (var c = 0; c < brickColumnCount; c++) {
-    for (var r = 0; r < brickRowCount; r++) {
-      bricks[`c${c}_r${r}`].y += transition;
-    }
-  }
-  console.log(bricks[0][0].y);
+  mapOnBricks((brick) => {
+    brick.x += transition;
+  });
 }
+
+let num_transitions = brickWidth + brickPadding;
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (num_transitions > 0) {
+    num_transitions -= 1;
+    transitionBricks();
+  }
   drawPaddle();
   collisionDetection();
   drawBall();
